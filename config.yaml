@@ -1,0 +1,186 @@
+# ──────────────────────────────────────────────────────────────────────────────
+#  HL Funding Spike Sniper — configuration
+#  ALL trading behavior is driven by this file. Edit, restart bot, done.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# === Account ==================================================================
+account:
+  # Reference capital used for sizing decisions (in USDC).
+  # The bot reads the real account balance from HL at runtime, but uses this
+  # value as a safety cap (won't size positions larger than this).
+  capital_usdc: 20            # LIVE TEST — deposit ~$20
+
+  # Maximum number of simultaneous open positions
+  max_concurrent_positions: 1   # LIVE TEST — 1 seule position à la fois
+
+  # Maximum total notional deployed as % of capital
+  max_total_exposure_pct: 50    # LIVE TEST — au max $10 sur le compte
+
+  # Maximum notional per single position as % of capital
+  max_position_pct: 50          # LIVE TEST — $10/position (min HL = $10)
+
+# === Universe filters =========================================================
+# Coins that must pass these gates to be considered for entry.
+universe:
+  # Minimum open interest (USD) on HL — filters illiquid micro caps
+  min_open_interest_usd: 5_000_000
+
+  # Maximum effective spread (bps) — filters wide-spread coins
+  max_spread_bps: 5
+
+  # Explicit blocklist (coin symbols, e.g. ["PURR", "PUMP"])
+  exclude_coins: []
+
+  # If non-empty, ONLY these coins are eligible (overrides everything else)
+  include_only: []
+
+# === Entry conditions =========================================================
+# ALL conditions below must be true simultaneously for entry.
+entry:
+  # Funding rate threshold (annualized %, e.g. 50 = +50% APR)
+  # Always evaluated on the ABSOLUTE value — works for shorting positive funding
+  min_funding_apr_pct: 15         # OPTION A — relâché pour tester le pipeline live
+  persistence_hours: 1            # OPTION A — 1 sample suffit (au lieu de 3)
+  min_funding_zscore: 0.1         # encore plus relâché — capte ZEC (z=0.22) et autres
+
+  # Lookback for z-score computation (in days)
+  zscore_lookback_days: 30
+
+  # Skip if |premium| in bps exceeds this (extreme premium = volatile basis risk)
+  max_premium_bps: 200
+
+  # Direction of trade: "short_high_funding" enters SHORT on high positive funding.
+  # Set to "long_low_funding" to also trade the symmetric case (LONG on extreme
+  # negative funding). For now stick to "short_high_funding".
+  direction_mode: "short_high_funding"
+
+# === Position sizing ==========================================================
+sizing:
+  # Leverage tiers — BTC/ETH/SOL get more, midcaps less
+  leverage_majors: 3       # BTC, ETH, SOL
+  leverage_midcaps: 2      # everything else
+  majors_list: ["BTC", "ETH", "SOL"]
+
+  # Sizing method: "equal" (split evenly among open slots)
+  #                "score_weighted" (proportional to funding_apr * stability)
+  method: "equal"
+
+# === Exit conditions ==========================================================
+# ANY condition below triggers exit (whichever fires first).
+exit:
+  # Exit when funding APR drops below this (in %)
+  funding_apr_exit_threshold: 10   # OPTION A — doit être < entry 15
+
+  # Take profit (% favorable price move from entry)
+  # For a SHORT, this is a price DROP of N%
+  take_profit_pct: 8
+
+  # Stop loss (% adverse price move from entry)
+  # For a SHORT, this is a price RISE of N%
+  stop_loss_pct: 10
+
+  # Max time in position (hours). 168 = 7 days.
+  timeout_hours: 168
+
+  # Exit if z-score normalizes below this (signal mean-reverted)
+  exit_on_zscore_below: 0.1   # OPTION A — évite exit immédiat (ZEC est à z=0.24)
+
+  # Allow re-entry on the same coin after exit, with cooldown (hours)
+  reentry_cooldown_hours: 6
+
+  # If we get stopped out, reduce size on next entry on same coin by this factor
+  post_stop_size_multiplier: 0.5
+
+# === Risk management ==========================================================
+risk:
+  # Halt new entries if rolling 24h PnL is below this (% of capital)
+  daily_loss_halt_pct: 3
+
+  # Hard kill switch — close all and halt if drawdown exceeds this (% of capital)
+  total_drawdown_kill_pct: 15
+
+  # Margin ratio thresholds (account-wide)
+  margin_ratio_warning: 0.40      # alert
+  margin_ratio_critical: 0.25     # auto-deleverage
+
+  # Max % of a coin's OI we're allowed to take (don't become the market)
+  max_pct_of_coin_oi: 1.0         # 1.0 = max 1% of total OI
+
+# === Execution ================================================================
+execution:
+  # CRITICAL: keep TRUE until you've tested everything end-to-end with real data
+  dry_run: false   # LIVE TEST — vrais ordres sur HL
+
+  # Order type: "market" (immediate fill, costs slippage) or "limit_post" (post-only)
+  order_type: "market"
+
+  # Slippage tolerance for market orders (fraction, 0.01 = 1%)
+  slippage_tolerance: 0.005
+
+  # If a limit order doesn't fill within N seconds, cancel and retry as market
+  limit_timeout_seconds: 30
+
+  # Retry policy for failed API calls
+  retry_attempts: 3
+  retry_delay_seconds: 5
+
+  # Use cross-margin (true) or isolated-margin (false) per position
+  # Isolated is safer per-trade but ties up more capital
+  use_cross_margin: false
+
+  # Use Hyperliquid native trigger orders for SL/TP.
+  # When TRUE (recommended):
+  #   - Right after opening a position, the bot places two trigger orders on HL:
+  #       * SL: reduce-only market buy at entry × (1 + stop_loss_pct/100)
+  #       * TP: reduce-only market buy at entry × (1 - take_profit_pct/100)
+  #   - HL enforces those triggers in real time (sub-second), even if the bot is
+  #     offline. The bot just verifies state at each tick (reconciliation).
+  #   - When the bot decides to exit manually (funding_normalized, zscore,
+  #     timeout), it CANCELS the pending triggers first.
+  # When FALSE:
+  #   - The bot polls every tick and triggers SL/TP itself. Slower reaction,
+  #     position unprotected if bot crashes between ticks.
+  use_native_triggers: true
+
+  # TLS certificate verification when calling the HL API.
+  # Default true (secure). Set to false ONLY on machines behind a corporate
+  # MITM proxy / antivirus that intercepts HTTPS — the bot will then accept
+  # any cert. The bot WILL print a loud warning at startup if this is false.
+  tls_verify: false
+
+# === Scheduling ===============================================================
+scheduler:
+  # Tick interval in seconds. 3600 = hourly (recommended for this strategy)
+  tick_interval_seconds: 3600
+
+  # Offset within the hour to run (HL funding settles on the hour mark).
+  # 60 = run at minute 59 of each hour
+  tick_offset_seconds_before_hour: 60
+
+# === Hyperliquid connection ===================================================
+hyperliquid:
+  # "mainnet" or "testnet"
+  network: "mainnet"
+
+  # The wallet address used for trading (read-only check & balance lookup)
+  # Required even in dry-run for realistic sizing
+  wallet_address: ""    # ← your HL wallet address (required when dry_run=false)
+
+  # NEVER put the private key here. It is read from env var HL_PRIVATE_KEY.
+  # In dry_run mode the private key is not required.
+  # See .env.example
+
+# === Notifications ============================================================
+notifications:
+  # Logging
+  log_level: "INFO"           # DEBUG, INFO, WARNING, ERROR
+  log_file: "logs/bot.log"
+
+  # Telegram (optional)
+  telegram:
+    enabled: false
+    # Bot token read from env var TELEGRAM_BOT_TOKEN
+    chat_id: ""
+
+  # Heartbeat: log a summary line at every tick even if nothing happens
+  heartbeat: true

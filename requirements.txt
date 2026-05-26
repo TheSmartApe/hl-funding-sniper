@@ -1,0 +1,6 @@
+hyperliquid-python-sdk>=0.10.0
+pydantic>=2.5.0
+PyYAML>=6.0
+eth-account>=0.10.0
+rich>=13.7.0
+python-dotenv>=1.0.0
