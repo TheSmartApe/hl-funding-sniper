@@ -29,7 +29,7 @@ of this software. You are solely responsible for any financial outcomes from
 using or modifying this code. By using this software you acknowledge that:
 
   - The strategy may lose money.
-  - Smart-contract risk on Hyperliquid is real (L1 propriétaire).
+  - Smart-contract risk on Hyperliquid is real (proprietary L1).
   - Bridge delays and smart-contract bugs can cause loss of funds.
   - You should never deploy more capital than you can afford to lose 100%.
   - Backtest results are not predictive of future performance.

@@ -11,7 +11,7 @@ account:
   capital_usdc: 20            # LIVE TEST — deposit ~$20
 
   # Maximum number of simultaneous open positions
-  max_concurrent_positions: 1   # LIVE TEST — 1 seule position à la fois
+  max_concurrent_positions: 1   # LIVE TEST — only 1 position at a time
 
   # Maximum total notional deployed as % of capital
   max_total_exposure_pct: 50    # LIVE TEST — au max $10 sur le compte
@@ -39,9 +39,9 @@ universe:
 entry:
   # Funding rate threshold (annualized %, e.g. 50 = +50% APR)
   # Always evaluated on the ABSOLUTE value — works for shorting positive funding
-  min_funding_apr_pct: 15         # OPTION A — relâché pour tester le pipeline live
-  persistence_hours: 1            # OPTION A — 1 sample suffit (au lieu de 3)
-  min_funding_zscore: 0.1         # encore plus relâché — capte ZEC (z=0.22) et autres
+  min_funding_apr_pct: 15         # OPTION A — relaxed to test the live pipeline
+  persistence_hours: 1            # OPTION A — 1 sample is enough (vs 3)
+  min_funding_zscore: 0.1         # even more relaxed — catches mild z-scores
 
   # Lookback for z-score computation (in days)
   zscore_lookback_days: 30
@@ -69,7 +69,7 @@ sizing:
 # ANY condition below triggers exit (whichever fires first).
 exit:
   # Exit when funding APR drops below this (in %)
-  funding_apr_exit_threshold: 10   # OPTION A — doit être < entry 15
+  funding_apr_exit_threshold: 10   # OPTION A — must be < entry 15
 
   # Take profit (% favorable price move from entry)
   # For a SHORT, this is a price DROP of N%
@@ -83,7 +83,7 @@ exit:
   timeout_hours: 168
 
   # Exit if z-score normalizes below this (signal mean-reverted)
-  exit_on_zscore_below: 0.1   # OPTION A — évite exit immédiat (ZEC est à z=0.24)
+  exit_on_zscore_below: 0.1   # OPTION A — avoid immediate exit on borderline z-scores
 
   # Allow re-entry on the same coin after exit, with cooldown (hours)
   reentry_cooldown_hours: 6

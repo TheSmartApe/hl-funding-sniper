@@ -372,10 +372,10 @@ def generate_report(
   <h2>1. Summary</h2>
   {_summary_html(sweep_df, data_summary)}
 
-  <h2>2. Heatmaps — TP × SL et autres axes</h2>
+  <h2>2. Heatmaps — TP × SL and other axes</h2>
   <p style="color:#666; font-size:13px; margin: 4px 0 12px 0;">
-    Chaque case = MEILLEURE valeur de la métrique sur tous les autres paramètres pour ce couple (x, y).
-    Les paires TP × SL avec TP ≤ SL sont exclues (contrainte "let winners run").
+    Each cell = BEST value of the metric across all other parameters for that (x, y) pair.
+    TP × SL pairs with TP ≤ SL are excluded ("let winners run" constraint).
   </p>
   <div class="grid-3">
     {''.join(f'<div>{_div(f)}</div>' for f in heatmap_figs)}
