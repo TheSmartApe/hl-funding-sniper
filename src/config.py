@@ -126,6 +126,20 @@ class Config(BaseModel):
 
     @model_validator(mode="after")
     def _cross_checks(self) -> "Config":
+        # Auto-derive wallet_address from private key if empty.
+        # This avoids the user ever having to put the wallet address in config.yaml
+        # (which would risk accidentally committing it to a public repo).
+        # When wallet_address is set in config, we DO NOT override — explicit wins.
+        if not self.hyperliquid.wallet_address and self.hl_private_key:
+            try:
+                from eth_account import Account  # noqa: WPS433
+                derived = Account.from_key(self.hl_private_key).address
+                self.hyperliquid.wallet_address = derived
+            except (ValueError, ImportError) as e:
+                # Bad key format or missing dep — leave empty, downstream
+                # checks will raise a more meaningful error.
+                pass
+
         # Critical < warning for margin
         if self.risk.margin_ratio_critical >= self.risk.margin_ratio_warning:
             raise ValueError(

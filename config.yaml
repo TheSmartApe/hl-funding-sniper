@@ -162,9 +162,11 @@ hyperliquid:
   # "mainnet" or "testnet"
   network: "mainnet"
 
-  # The wallet address used for trading (read-only check & balance lookup)
-  # Required even in dry-run for realistic sizing
-  wallet_address: ""    # ← your HL wallet address (required when dry_run=false)
+  # The wallet address used for trading (read-only check & balance lookup).
+  # LEAVE EMPTY — the bot auto-derives it from HL_PRIVATE_KEY at startup.
+  # This avoids the risk of committing your wallet address to a public repo.
+  # If you want to override (e.g. paper-monitor a different wallet), set it here.
+  wallet_address: ""
 
   # NEVER put the private key here. It is read from env var HL_PRIVATE_KEY.
   # In dry_run mode the private key is not required.

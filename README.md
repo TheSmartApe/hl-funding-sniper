@@ -513,10 +513,26 @@ restart bot.
 | `HL_PRIVATE_KEY` | Si `dry_run: false` | Clé privée du wallet (hex). |
 | `TELEGRAM_BOT_TOKEN` | Si `telegram.enabled: true` | Token bot Telegram. |
 
-Voir `.env.example`. Sur Windows PowerShell :
-```powershell
-$env:HL_PRIVATE_KEY = "0x..."
-```
+Voir `.env.example`. Le bot charge automatiquement `.env` au démarrage
+via `python-dotenv` — pas besoin de `export` manuel.
+
+### Auto-dérivation du wallet_address
+
+Le bot **dérive automatiquement** `hyperliquid.wallet_address` depuis
+`HL_PRIVATE_KEY` au démarrage (via `eth_account.Account.from_key`).
+Donc :
+
+- Laisse `wallet_address: ""` dans `config.yaml`
+- Mets `HL_PRIVATE_KEY=0x...` dans `.env`
+- Le bot dérive l'adresse au boot et l'affiche tronquée (`0x…XXXX`) dans le banner
+
+**Pourquoi** : ça élimine tout risque de commit accidentel du wallet sur
+le repo public, et garantit que la clé et l'adresse sont toujours
+cohérentes (impossible de mismatch).
+
+Si tu veux **override** explicitement (par exemple pour monitor une autre
+adresse en read-only), tu peux mettre une vraie adresse dans `config.yaml`
+— le bot respecte la valeur explicite si elle est non-vide.
 
 ---
 

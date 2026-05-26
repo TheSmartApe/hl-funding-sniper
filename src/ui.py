@@ -66,9 +66,16 @@ def print_banner(cfg: Config) -> None:
 
     tls = "[red]TLS DISABLED[/]" if not cfg.execution.tls_verify else "[green]TLS ok[/]"
 
+    # Show truncated wallet for visual confirmation (last 4 chars only)
+    addr = cfg.hyperliquid.wallet_address or ""
+    wallet_short = (
+        f"[dim]0x…{addr[-4:]}[/]" if len(addr) >= 6 else "[dim](none)[/]"
+    )
+
     body = Text.from_markup(
         f"[dim]Mode:[/]        {mode}\n"
-        f"[dim]Network:[/]     {cfg.hyperliquid.network}    {tls}\n"
+        f"[dim]Network:[/]     {cfg.hyperliquid.network}    {tls}    "
+        f"[dim]wallet[/] {wallet_short}\n"
         f"[dim]Capital:[/]     [bold]${cfg.account.capital_usdc:,.2f}[/]\n"
         f"[dim]Caps:[/]        max {cfg.account.max_concurrent_positions} pos × "
         f"{cfg.account.max_position_pct}% = {cfg.account.max_total_exposure_pct}% total exposure\n"
